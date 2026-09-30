@@ -38,7 +38,7 @@ class AudioCapabilityScanner(private val context: Context) {
         }
 
         var hasSpatializer = false
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S2) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S_V2) {
             val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
             val spatializer = audioManager.spatializer
             hasSpatializer = spatializer.isAvailable
