@@ -1,65 +1,78 @@
 package com.waveforge.audio.ui
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
+import com.waveforge.audio.data.WaveForgePreferencesRepository
+import com.waveforge.audio.ui.screens.*
+import kotlinx.coroutines.launch
 
 @Composable
 fun WaveForgeApp() {
+    val context = LocalContext.current
+    val repository = remember { WaveForgePreferencesRepository(context) }
+    val onboardingComplete by repository.onboardingComplete.collectAsState(initial = false)
+    val coroutineScope = rememberCoroutineScope()
     val navController = rememberNavController()
 
-    var onboardingComplete by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-
     if (!onboardingComplete) {
-        OnboardingScreen(onComplete = { onboardingComplete = true })
+        OnboardingScreen(onComplete = { mode ->
+            coroutineScope.launch {
+                repository.setAudioMode(mode)
+                repository.setOnboardingComplete(true)
+            }
+        })
         return
     }
 
-    Scaffold { padding ->
-        NavHost(
-            navController = navController,
-            startDestination = "home",
-            modifier = Modifier.padding(padding)
-        ) {
-            composable("home") {
-                Column {
-                    Text("Audio Engine Status: READY")
-                    Text("Master DSP Bypass: OFF")
+    Scaffold(
+        bottomBar = {
+            NavigationBar {
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentRoute = navBackStackEntry?.destination?.route
+
+                val items = listOf("dashboard", "eq", "processing", "output", "settings")
+                val labels = listOf("Dashboard", "EQ", "Processing", "Output", "Settings")
+
+                items.forEachIndexed { index, screen ->
+                    NavigationBarItem(
+                        selected = currentRoute == screen,
+                        onClick = {
+                            navController.navigate(screen) {
+                                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                        label = { Text(labels[index]) },
+                        icon = { /* Material icons can be added here */ }
+                    )
                 }
             }
-            composable("equalizer") { Text("Equalizer") }
-            composable("spatial") { Text("Spatial") }
-            composable("dynamics") { Text("Dynamics") }
-            composable("playback") { Text("Playback") }
-            composable("presets") { Text("Presets") }
-            composable("devices") { Text("Devices") }
+        }
+    ) { padding ->
+        NavHost(
+            navController = navController,
+            startDestination = "dashboard",
+            modifier = Modifier.padding(padding)
+        ) {
+            composable("dashboard") { DashboardScreen() }
+            composable("eq") { EqualizerScreen() }
+            composable("processing") { ProcessingScreen() }
+            composable("output") { OutputScreen() }
             composable("settings") { 
-                Column {
-                    Text("Settings")
-                    androidx.compose.material3.Button(onClick = { onboardingComplete = false }) {
-                        Text("Run setup again")
+                SettingsScreen(
+                    onRunSetupAgain = {
+                        coroutineScope.launch { repository.setOnboardingComplete(false) }
                     }
-                    val context = androidx.compose.ui.platform.LocalContext.current
-                    var scanResult by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
-                    androidx.compose.material3.Button(onClick = {
-                        val scanner = com.waveforge.audio.setup.AudioCapabilityScanner(context)
-                        val report = scanner.scanCapabilities()
-                        scanResult = "API: ${report.apiLevel}, DSP: ${report.hasDynamicsProcessing}"
-                    }) {
-                        Text("Re-scan audio capabilities")
-                    }
-                    if (scanResult.isNotEmpty()) {
-                        Text(scanResult)
-                    }
-                }
+                ) 
             }
         }
     }
