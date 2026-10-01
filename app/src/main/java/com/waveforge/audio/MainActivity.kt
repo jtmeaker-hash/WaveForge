@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
-        val engine = AudioEngine(applicationContext)
+        val engine = (applicationContext as WaveForgeApplication).engine
         val repository = WaveForgePreferencesRepository(applicationContext)
         val factory = WaveForgeViewModelFactory(engine, repository)
         
