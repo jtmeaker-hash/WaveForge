@@ -8,7 +8,6 @@ import com.waveforge.audio.WaveForgeApplication
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 class AudioPlaybackService : MediaSessionService() {
@@ -21,19 +20,7 @@ class AudioPlaybackService : MediaSessionService() {
         exoPlayer = ExoPlayer.Builder(this).build()
         mediaSession = MediaSession.Builder(this, exoPlayer!!).build()
         
-        // Tie WaveForgeApplication.engine parameters to ExoPlayer
-        val engine = WaveForgeApplication.engine
-        scope.launch {
-            combine(engine.pitch, engine.tempo, engine.masterBypassed) { pitch, tempo, bypassed ->
-                Triple(pitch, tempo, bypassed)
-            }.collect { (pitch, tempo, bypassed) ->
-                if (bypassed) {
-                    exoPlayer?.playbackParameters = PlaybackParameters(1.0f, 1.0f)
-                } else {
-                    exoPlayer?.playbackParameters = PlaybackParameters(tempo, pitch)
-                }
-            }
-        }
+        // PcmDspBackend will later hook into ExoPlayer here.
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
