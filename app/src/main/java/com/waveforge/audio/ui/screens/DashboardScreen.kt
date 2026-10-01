@@ -17,8 +17,13 @@ import com.waveforge.audio.ui.components.SectionHeader
 @Composable
 fun DashboardScreen(viewModel: WaveForgeViewModel) {
     val engineState by viewModel.engineState.collectAsState()
-    val eqEnabled by viewModel.eqEnabled.collectAsState()
+    val source by viewModel.audioSource.collectAsState()
+    val backend by viewModel.backendName.collectAsState()
+    val sessionId by viewModel.activeSessionId.collectAsState()
+    val hasControl by viewModel.hasControl.collectAsState()
+    val masterBypassed by viewModel.masterBypassed.collectAsState()
     val error by viewModel.lastError.collectAsState()
+    val hwBands by viewModel.hardwareBands.collectAsState()
 
     Scaffold(
         topBar = {
@@ -29,33 +34,35 @@ fun DashboardScreen(viewModel: WaveForgeViewModel) {
                         Text("AUDIO PROCESSING", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState())
+            modifier = Modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 16.dp).verticalScroll(rememberScrollState())
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
             WaveForgeCard {
-                SectionHeader("ENGINE STATUS")
-                Text(engineState, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
-                if (error != null) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(error!!, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                SectionHeader("AUDIO ENGINE STATUS")
+                val activeStr = if (hasControl && !masterBypassed) "ACTIVE" else "BYPASSED / INACTIVE"
+                Text("Audio processing: $activeStr", style = MaterialTheme.typography.bodyLarge)
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text("Audio source: $source", style = MaterialTheme.typography.bodyMedium)
+                Text("Effect mode: $backend", style = MaterialTheme.typography.bodyMedium)
+                Text("Audio session ID: $sessionId", style = MaterialTheme.typography.bodyMedium)
+                Text("EQ engine: ${if (hwBands.isNotEmpty()) "Available" else "Unavailable"}", style = MaterialTheme.typography.bodyMedium)
+                Text("Master Bypass: ${if (masterBypassed) "ON" else "OFF"}", style = MaterialTheme.typography.bodyMedium)
+                Text("EQ has control: ${if (hasControl) "Yes" else "No"}", style = MaterialTheme.typography.bodyMedium)
+                Text("Band count: ${hwBands.size}", style = MaterialTheme.typography.bodyMedium)
+                if (hwBands.isNotEmpty()) {
+                    Text("Band gain range: ${hwBands[0].minGain / 100} to ${hwBands[0].maxGain / 100} dB", style = MaterialTheme.typography.bodyMedium)
                 }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            WaveForgeCard {
-                SectionHeader("ACTIVE PROCESSING")
-                Text("EQ: ${if (eqEnabled) "Enabled" else "Disabled"}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                
+                if (error != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Last engine error: $error", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                }
             }
         }
     }

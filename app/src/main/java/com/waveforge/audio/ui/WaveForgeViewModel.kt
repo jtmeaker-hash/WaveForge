@@ -7,7 +7,6 @@ import com.waveforge.audio.engine.AudioEngine
 import com.waveforge.audio.data.WaveForgePreferencesRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 
 class WaveForgeViewModel(
     val engine: AudioEngine,
@@ -15,41 +14,32 @@ class WaveForgeViewModel(
 ) : ViewModel() {
 
     val engineState = engine.engineState.stateIn(viewModelScope, SharingStarted.Lazily, "Disconnected")
-    val eqBands = engine.eqBands.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-    val eqEnabled = engine.eqEnabled.stateIn(viewModelScope, SharingStarted.Lazily, false)
-    val bassEnabled = engine.bassEnabled.stateIn(viewModelScope, SharingStarted.Lazily, false)
-    val bassStrength = engine.bassStrength.stateIn(viewModelScope, SharingStarted.Lazily, 0)
-    val loudnessEnabled = engine.loudnessEnabled.stateIn(viewModelScope, SharingStarted.Lazily, false)
-    val loudnessGain = engine.loudnessGain.stateIn(viewModelScope, SharingStarted.Lazily, 0)
+    val audioSource = engine.audioSource.stateIn(viewModelScope, SharingStarted.Lazily, "Unknown")
+    val activeSessionId = engine.activeSessionId.stateIn(viewModelScope, SharingStarted.Lazily, -1)
+    val hasControl = engine.hasControl.stateIn(viewModelScope, SharingStarted.Lazily, false)
+    val backendName = engine.backendName.stateIn(viewModelScope, SharingStarted.Lazily, "None")
+    
+    val hardwareBands = engine.hardwareBands.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    val wfBands = engine.wfBands.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    val masterBypassed = engine.masterBypassed.stateIn(viewModelScope, SharingStarted.Lazily, false)
     val lastError = engine.lastError.stateIn(viewModelScope, SharingStarted.Lazily, null)
+    
+    val bassStrength = engine.bassStrength.stateIn(viewModelScope, SharingStarted.Lazily, 0)
+    val loudnessGain = engine.loudnessGain.stateIn(viewModelScope, SharingStarted.Lazily, 0)
+    val virtualizerStrength = engine.virtualizerStrength.stateIn(viewModelScope, SharingStarted.Lazily, 0)
+    val pitch = engine.pitch.stateIn(viewModelScope, SharingStarted.Lazily, 1.0f)
+    val tempo = engine.tempo.stateIn(viewModelScope, SharingStarted.Lazily, 1.0f)
 
-    fun setEqEnabled(enabled: Boolean) {
-        engine.setEqEnabled(enabled)
-    }
-
-    fun setBandLevel(bandIndex: Short, level: Short) {
-        engine.setBandLevel(bandIndex, level)
-    }
-
-    fun resetEq() {
-        engine.resetEq()
-    }
-
-    fun setBassEnabled(enabled: Boolean) {
-        engine.setBassEnabled(enabled)
-    }
-
-    fun setBassStrength(strength: Int) {
-        engine.setBassStrength(strength)
-    }
-
-    fun setLoudnessEnabled(enabled: Boolean) {
-        engine.setLoudnessEnabled(enabled)
-    }
-
-    fun setLoudnessGain(gain: Int) {
-        engine.setLoudnessGain(gain)
-    }
+    fun setMasterBypass(bypassed: Boolean) = engine.setMasterBypass(bypassed)
+    fun setWfBandGain(id: Int, gainDb: Float) = engine.setWfBandGain(id, gainDb)
+    fun applyExtremeTest() = engine.applyExtremeTest()
+    fun resetEq() = engine.resetEq()
+    
+    fun setBassStrength(s: Int) = engine.setBassStrength(s)
+    fun setLoudnessGain(g: Int) = engine.setLoudnessGain(g)
+    fun setVirtualizerStrength(s: Int) = engine.setVirtualizerStrength(s)
+    fun setPitch(p: Float) = engine.setPitch(p)
+    fun setTempo(t: Float) = engine.setTempo(t)
 }
 
 class WaveForgeViewModelFactory(
@@ -57,6 +47,7 @@ class WaveForgeViewModelFactory(
     private val repository: WaveForgePreferencesRepository
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        @Suppress("UNCHECKED_CAST")
         return WaveForgeViewModel(engine, repository) as T
     }
 }

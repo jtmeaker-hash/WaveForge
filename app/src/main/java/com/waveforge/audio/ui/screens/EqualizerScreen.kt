@@ -12,14 +12,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.waveforge.audio.ui.WaveForgeViewModel
 import com.waveforge.audio.ui.components.WaveForgeCard
-import com.waveforge.audio.ui.components.SectionHeader
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EqualizerScreen(viewModel: WaveForgeViewModel) {
-    val eqEnabled by viewModel.eqEnabled.collectAsState()
-    val bands by viewModel.eqBands.collectAsState()
+    val masterBypassed by viewModel.masterBypassed.collectAsState()
+    val wfBands by viewModel.wfBands.collectAsState()
+    val hasControl by viewModel.hasControl.collectAsState()
 
     Scaffold(
         topBar = {
@@ -37,39 +37,42 @@ fun EqualizerScreen(viewModel: WaveForgeViewModel) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Enable Equalizer", style = MaterialTheme.typography.bodyLarge)
-                    Switch(checked = eqEnabled, onCheckedChange = { viewModel.setEqEnabled(it) })
+                    Text("Master Bypass", style = MaterialTheme.typography.bodyLarge)
+                    Switch(checked = masterBypassed, onCheckedChange = { viewModel.setMasterBypass(it) })
+                }
+                if (!hasControl) {
+                    Text("Engine lacks control. Changes will apply when session is active.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { viewModel.resetEq() }, modifier = Modifier.fillMaxWidth()) {
-                    Text("Reset EQ")
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Button(onClick = { viewModel.resetEq() }, modifier = Modifier.weight(1f)) {
+                        Text("RESET EQ")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(onClick = { viewModel.applyExtremeTest() }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
+                        Text("EXTREME EQ TEST")
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
             
-            if (bands.isEmpty()) {
-                WaveForgeCard {
-                    Text("EQ not supported on this device or session.", color = MaterialTheme.colorScheme.error)
-                }
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                    items(bands) { band ->
-                        WaveForgeCard(modifier = Modifier.padding(bottom = 8.dp)) {
-                            Column(modifier = Modifier.fillMaxWidth()) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text("${band.centerFreq / 1000} Hz", style = MaterialTheme.typography.bodyMedium)
-                                    Text("${band.gain / 100} dB", style = MaterialTheme.typography.bodyMedium)
-                                }
-                                Slider(
-                                    value = band.gain.toFloat(),
-                                    onValueChange = { viewModel.setBandLevel(band.index, it.roundToInt().toShort()) },
-                                    valueRange = band.minGain.toFloat()..band.maxGain.toFloat(),
-                                    enabled = eqEnabled
-                                )
+            LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                items(wfBands) { band ->
+                    WaveForgeCard(modifier = Modifier.padding(bottom = 8.dp)) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("${band.centerFreq / 1000} Hz", style = MaterialTheme.typography.bodyMedium)
+                                Text("${band.gainDb.roundToInt()} dB", style = MaterialTheme.typography.bodyMedium)
                             }
+                            Slider(
+                                value = band.gainDb,
+                                onValueChange = { viewModel.setWfBandGain(band.id, it) },
+                                valueRange = -15f..15f,
+                                enabled = !masterBypassed
+                            )
                         }
                     }
                 }

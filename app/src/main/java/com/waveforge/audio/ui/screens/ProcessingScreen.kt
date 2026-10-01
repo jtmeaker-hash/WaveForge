@@ -18,10 +18,12 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProcessingScreen(viewModel: WaveForgeViewModel) {
-    val bassEnabled by viewModel.bassEnabled.collectAsState()
+    val masterBypassed by viewModel.masterBypassed.collectAsState()
     val bassStrength by viewModel.bassStrength.collectAsState()
-    val loudnessEnabled by viewModel.loudnessEnabled.collectAsState()
     val loudnessGain by viewModel.loudnessGain.collectAsState()
+    val virtualizerStrength by viewModel.virtualizerStrength.collectAsState()
+    val pitch by viewModel.pitch.collectAsState()
+    val tempo by viewModel.tempo.collectAsState()
 
     Scaffold(
         topBar = {
@@ -36,39 +38,58 @@ fun ProcessingScreen(viewModel: WaveForgeViewModel) {
             modifier = Modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 16.dp).verticalScroll(rememberScrollState())
         ) {
             WaveForgeCard {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("Bass Boost", style = MaterialTheme.typography.bodyLarge)
-                    Switch(checked = bassEnabled, onCheckedChange = { viewModel.setBassEnabled(it) })
-                }
+                SectionHeader("TONE & DYNAMICS")
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Strength: $bassStrength", style = MaterialTheme.typography.bodyMedium)
+                
+                Text("Bass Boost: $bassStrength", style = MaterialTheme.typography.bodyMedium)
                 Slider(
                     value = bassStrength.toFloat(),
                     onValueChange = { viewModel.setBassStrength(it.roundToInt()) },
                     valueRange = 0f..1000f,
-                    enabled = bassEnabled
+                    enabled = !masterBypassed
                 )
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            WaveForgeCard {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("Loudness Enhancer", style = MaterialTheme.typography.bodyLarge)
-                    Switch(checked = loudnessEnabled, onCheckedChange = { viewModel.setLoudnessEnabled(it) })
-                }
+                
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Gain: $loudnessGain mB", style = MaterialTheme.typography.bodyMedium)
+                Text("Loudness Enhancer (Preamp): $loudnessGain mB", style = MaterialTheme.typography.bodyMedium)
                 Slider(
                     value = loudnessGain.toFloat(),
                     onValueChange = { viewModel.setLoudnessGain(it.roundToInt()) },
                     valueRange = 0f..5000f,
-                    enabled = loudnessEnabled
+                    enabled = !masterBypassed
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Virtualizer (Stereo Width): $virtualizerStrength", style = MaterialTheme.typography.bodyMedium)
+                Slider(
+                    value = virtualizerStrength.toFloat(),
+                    onValueChange = { viewModel.setVirtualizerStrength(it.roundToInt()) },
+                    valueRange = 0f..1000f,
+                    enabled = !masterBypassed
                 )
             }
+            
             Spacer(modifier = Modifier.height(16.dp))
             WaveForgeCard {
-                SectionHeader("OTHER MODULES")
-                Text("Crossfeed - Coming soon", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("Compressor - Coming soon", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                SectionHeader("PLAYBACK (FULL DSP PLAYER ONLY)")
+                Text("Settings here only affect internal playback via Media3.", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text("Pitch: $pitch", style = MaterialTheme.typography.bodyMedium)
+                Slider(
+                    value = pitch,
+                    onValueChange = { viewModel.setPitch(it) },
+                    valueRange = 0.5f..2.0f,
+                    enabled = !masterBypassed
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Tempo: $tempo", style = MaterialTheme.typography.bodyMedium)
+                Slider(
+                    value = tempo,
+                    onValueChange = { viewModel.setTempo(it) },
+                    valueRange = 0.5f..2.0f,
+                    enabled = !masterBypassed
+                )
             }
         }
     }

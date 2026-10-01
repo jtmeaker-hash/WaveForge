@@ -33,3 +33,9 @@ data class EqBand(
     val maxGain: Short,
     var gain: Short
 )
+
+data class WfEqBand(
+    val id: Int,
+    val centerFreq: Int,
+    val gainDb: Float
+)
