@@ -132,7 +132,6 @@ class AudioEngine(private val context: Context) {
         val bypass = !_dspState.value.masterEnabled
         Log.d(TAG, "Master Enabled: ${!bypass}")
         
-        // Push bypass/enabled states based on masterEnabled
         b.setEqEnabled(!bypass && _eqEnabled.value)
         b.setEqBands(_eqBands.value)
         
@@ -142,11 +141,14 @@ class AudioEngine(private val context: Context) {
         b.setLoudnessEnabled(!bypass && _loudnessEnabled.value)
         b.setLoudnessGain(_loudnessGain.value)
         
-        val haas = _dspState.value.haas
-        b.setHaasSurround(!bypass && haas.enabled, haas.delayMs, haas.amount, 0, 0, false, haas.width)
-        
-        val cf = _dspState.value.crossfeed
-        b.setCrossfeed("Custom", cf.directLevel, cf.crossfeedLevel, 0, cf.cutoffHz)
+        val st = _dspState.value
+        b.setHaasSurround(!bypass && st.haas.enabled, st.haas.delayMs, st.haas.amount, 0, 0, false, st.haas.width)
+        b.setCrossfeed(if (!bypass && st.crossfeed.enabled) "Custom" else "Off", st.crossfeed.directLevel, st.crossfeed.crossfeedLevel, 0, st.crossfeed.cutoffHz)
+        b.setCompressor(!bypass && st.compressor.enabled, st.compressor.threshold, st.compressor.makeupGain, st.compressor.ratio, st.compressor.knee, st.compressor.attackMs, st.compressor.releaseMs)
+        b.setLimiter(!bypass && st.limiter.enabled, st.limiter.threshold)
+        b.setPerceptualBass(if (!bypass && st.pbe.enabled) st.pbe.strength else 0, st.pbe.preCut)
+        b.setAuditoryFatigueReduction(if (!bypass && st.afr.enabled) st.afr.mode else "Off")
+        b.setChannelConfig(if (!bypass && st.stereoWidth.enabled) "StereoWidth" else "Default", st.stereoWidth.strength)
         
         if (b is ExternalSessionAudioBackend) {
             b.statePushSuccessful = true
@@ -157,7 +159,7 @@ class AudioEngine(private val context: Context) {
         val b = backend
         if (b != null && b.isAttached) {
             val caps = mutableMapOf<String, DspCapability>()
-            listOf("EQ", "BassBoost", "Loudness", "Haas", "Crossfeed", "PBE", "AFR", "Compressor", "Limiter", "Preamp", "ChannelConfig").forEach {
+            listOf("EQ", "BassBoost", "Loudness", "Haas", "Crossfeed", "Perceptual", "Auditory", "Compressor", "Limiter", "Preamp", "Channel", "Stereo").forEach {
                 caps[it] = b.getCapability(it)
             }
             diagnosticsInfo.value = DiagnosticsInfo(
@@ -231,7 +233,39 @@ class AudioEngine(private val context: Context) {
 
     fun updateCrossfeedConfig(config: CrossfeedConfig) {
         _dspState.update { it.copy(crossfeed = config) }
-        backend?.setCrossfeed("Custom", config.directLevel, config.crossfeedLevel, 0, config.cutoffHz)
+        val bypass = !_dspState.value.masterEnabled
+        val mode = if (!bypass && config.enabled) "Custom" else "Off"
+        backend?.setCrossfeed(mode, config.directLevel, config.crossfeedLevel, 0, config.cutoffHz)
+    }
+    
+    fun updateCompressorConfig(config: CompressorConfig) {
+        _dspState.update { it.copy(compressor = config) }
+        val bypass = !_dspState.value.masterEnabled
+        backend?.setCompressor(!bypass && config.enabled, config.threshold, config.makeupGain, config.ratio, config.knee, config.attackMs, config.releaseMs)
+    }
+
+    fun updateLimiterConfig(config: LimiterConfig) {
+        _dspState.update { it.copy(limiter = config) }
+        val bypass = !_dspState.value.masterEnabled
+        backend?.setLimiter(!bypass && config.enabled, config.threshold)
+    }
+
+    fun updatePbeConfig(config: PbeConfig) {
+        _dspState.update { it.copy(pbe = config) }
+        val bypass = !_dspState.value.masterEnabled
+        backend?.setPerceptualBass(if (!bypass && config.enabled) config.strength else 0, config.preCut)
+    }
+    
+    fun updateAfrConfig(config: AfrConfig) {
+        _dspState.update { it.copy(afr = config) }
+        val bypass = !_dspState.value.masterEnabled
+        backend?.setAuditoryFatigueReduction(if (!bypass && config.enabled) config.mode else "Off")
+    }
+
+    fun updateStereoWidthConfig(config: StereoWidthConfig) {
+        _dspState.update { it.copy(stereoWidth = config) }
+        val bypass = !_dspState.value.masterEnabled
+        backend?.setChannelConfig(if (!bypass && config.enabled) "StereoWidth" else "Default", config.strength)
     }
     
     fun setEqEnabled(enabled: Boolean) {
@@ -278,7 +312,6 @@ class AudioEngine(private val context: Context) {
         Log.d(TAG, "applyExtremeTest: Setting dramatic EQ for testing")
         if (_eqBands.value.isEmpty()) return
         
-        // Ensure EQ and Master are enabled for the extreme test to work
         setMasterEnabled(true)
         setEqEnabled(true)
         

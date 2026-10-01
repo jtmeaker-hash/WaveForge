@@ -15,3 +15,7 @@
 | Dithering / Resampling | Yes | No | Partial | No | No | No | Low-level DSP | Planned for native C++ layer |
 | Diagnostics | Yes | Yes | Yes | Yes | N/A | Yes | None | Truthfully reports state |
 
+| PBE (Perceptual Bass) | Yes | Yes | Yes | Yes (Mapped via EQ) | Yes | Yes | None | Simulates PBE using targeted EQ offset |
+| AFR (Auditory Fatigue) | Yes | Yes | Yes | Yes (Mapped via EQ) | Yes | Yes | None | Softens highs via targeted EQ offset |
+| Haas Surround | Yes | No | Yes | No | Yes | No | PCM/Root needed | Advertised as Unsupported on External Session |
+| Crossfeed | Yes | No | Yes | No | Yes | No | PCM/Root needed | Advertised as Unsupported on External Session |
