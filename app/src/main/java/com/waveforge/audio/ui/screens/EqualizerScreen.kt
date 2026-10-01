@@ -17,9 +17,9 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EqualizerScreen(viewModel: WaveForgeViewModel) {
-    val masterBypassed by viewModel.masterBypassed.collectAsState()
-    val wfBands by viewModel.wfBands.collectAsState()
-    val hasControl by viewModel.hasControl.collectAsState()
+    val eqEnabled by viewModel.eqEnabled.collectAsState()
+    val eqBands by viewModel.eqBands.collectAsState()
+    val diagnostics by viewModel.diagnosticsInfo.collectAsState()
 
     Scaffold(
         topBar = {
@@ -37,16 +37,16 @@ fun EqualizerScreen(viewModel: WaveForgeViewModel) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Master Bypass", style = MaterialTheme.typography.bodyLarge)
-                    Switch(checked = masterBypassed, onCheckedChange = { viewModel.setMasterBypass(it) })
+                    Text("Enable EQ", style = MaterialTheme.typography.bodyLarge)
+                    Switch(checked = eqEnabled, onCheckedChange = { viewModel.setEqEnabled(it) })
                 }
-                if (!hasControl) {
+                if (diagnostics.capabilities["EQ"]?.name?.contains("SUPPORTED") != true) {
                     Text("Engine lacks control. Changes will apply when session is active.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Button(onClick = { viewModel.resetEq() }, modifier = Modifier.weight(1f)) {
-                        Text("RESET EQ")
+                        Text("RESET TO FLAT")
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(onClick = { viewModel.applyExtremeTest() }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
@@ -57,7 +57,7 @@ fun EqualizerScreen(viewModel: WaveForgeViewModel) {
             Spacer(modifier = Modifier.height(16.dp))
             
             LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                items(wfBands) { band ->
+                items(eqBands) { band ->
                     WaveForgeCard(modifier = Modifier.padding(bottom = 8.dp)) {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Row(
@@ -65,13 +65,13 @@ fun EqualizerScreen(viewModel: WaveForgeViewModel) {
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text("${band.centerFreq / 1000} Hz", style = MaterialTheme.typography.bodyMedium)
-                                Text("${band.gainDb.roundToInt()} dB", style = MaterialTheme.typography.bodyMedium)
+                                Text("${band.gain / 100} dB", style = MaterialTheme.typography.bodyMedium)
                             }
                             Slider(
-                                value = band.gainDb,
-                                onValueChange = { viewModel.setWfBandGain(band.id, it) },
-                                valueRange = -15f..15f,
-                                enabled = !masterBypassed
+                                value = band.gain.toFloat(),
+                                onValueChange = { viewModel.setBandLevel(band.index, it.roundToInt().toShort()) },
+                                valueRange = band.minGain.toFloat()..band.maxGain.toFloat(),
+                                enabled = eqEnabled
                             )
                         }
                     }

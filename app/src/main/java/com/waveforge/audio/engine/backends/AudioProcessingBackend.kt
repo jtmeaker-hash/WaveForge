@@ -1,28 +1,37 @@
 package com.waveforge.audio.engine.backends
 
-import com.waveforge.audio.domain.EqBand
-import com.waveforge.audio.domain.WfEqBand
+import com.waveforge.audio.engine.DspCapability
+import com.waveforge.audio.engine.EqBandRequest
+import kotlinx.coroutines.flow.StateFlow
 
 interface AudioProcessingBackend {
-    val isAvailable: Boolean
-    val hasControl: Boolean
-    val activeSessionId: Int
+    val isAttached: Boolean
     val backendName: String
-    val packageName: String
-
-    fun setMasterBypass(bypassed: Boolean)
-    fun applyEqCurve(wfBands: List<WfEqBand>)
-    fun getHardwareBands(): List<EqBand>
     
-    // Dynamics & Tone
+    fun getCapability(feature: String): DspCapability
+    
+    fun setEqEnabled(enabled: Boolean)
+    fun setEqBands(bands: List<EqBandRequest>)
+    
+    fun setBassEnabled(enabled: Boolean)
     fun setBassStrength(strength: Int)
-    fun setLoudnessGain(gainMb: Int)
-    fun setVirtualizerStrength(strength: Int)
-    fun setCompressor(enabled: Boolean, threshold: Float, ratio: Float)
     
-    // Playback (Full DSP only)
-    fun setPitch(pitch: Float)
-    fun setTempo(tempo: Float)
+    fun setLoudnessEnabled(enabled: Boolean)
+    fun setLoudnessGain(gain: Int)
+    
+    // Phase 3-5 additions
+    fun setHaasSurround(enabled: Boolean, delayMs: Int, balance: Int, fx1: Int, fx2: Int, sideOnly: Boolean, wetMix: Int)
+    fun setChannelConfig(mode: String, stereoWidth: Int)
+    fun setCrossfeed(mode: String, directGain: Int, crossGain: Int, hfAttenuation: Int, hfCutoff: Int)
+    fun setPerceptualBass(strength: Int, precut: Float)
+    fun setAuditoryFatigueReduction(mode: String)
+    fun setCompressor(enabled: Boolean, threshold: Int, makeupGain: Int, ratio: Int, knee: String, attackMs: Int, releaseMs: Int)
+    fun setLimiter(enabled: Boolean, threshold: Int)
+    
+    fun setPreamp(gain: Int)
     
     fun release()
+    
+    fun getNativeEqBands(): Int
+    fun getLastError(): String?
 }

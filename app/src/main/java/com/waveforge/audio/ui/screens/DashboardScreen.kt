@@ -9,6 +9,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.waveforge.audio.engine.EngineState
 import com.waveforge.audio.ui.WaveForgeViewModel
 import com.waveforge.audio.ui.components.WaveForgeCard
 import com.waveforge.audio.ui.components.SectionHeader
@@ -17,13 +18,10 @@ import com.waveforge.audio.ui.components.SectionHeader
 @Composable
 fun DashboardScreen(viewModel: WaveForgeViewModel) {
     val engineState by viewModel.engineState.collectAsState()
-    val source by viewModel.audioSource.collectAsState()
-    val backend by viewModel.backendName.collectAsState()
-    val sessionId by viewModel.activeSessionId.collectAsState()
-    val hasControl by viewModel.hasControl.collectAsState()
-    val masterBypassed by viewModel.masterBypassed.collectAsState()
-    val error by viewModel.lastError.collectAsState()
-    val hwBands by viewModel.hardwareBands.collectAsState()
+    val eqEnabled by viewModel.eqEnabled.collectAsState()
+    val bassEnabled by viewModel.bassEnabled.collectAsState()
+    val loudnessEnabled by viewModel.loudnessEnabled.collectAsState()
+    val diagnostics by viewModel.diagnosticsInfo.collectAsState()
 
     Scaffold(
         topBar = {
@@ -43,25 +41,53 @@ fun DashboardScreen(viewModel: WaveForgeViewModel) {
             modifier = Modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 16.dp).verticalScroll(rememberScrollState())
         ) {
             WaveForgeCard {
-                SectionHeader("AUDIO ENGINE STATUS")
-                val activeStr = if (hasControl && !masterBypassed) "ACTIVE" else "BYPASSED / INACTIVE"
-                Text("Audio processing: $activeStr", style = MaterialTheme.typography.bodyLarge)
+                SectionHeader("PROCESSING STATUS")
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                Text("Audio source: $source", style = MaterialTheme.typography.bodyMedium)
-                Text("Effect mode: $backend", style = MaterialTheme.typography.bodyMedium)
-                Text("Audio session ID: $sessionId", style = MaterialTheme.typography.bodyMedium)
-                Text("EQ engine: ${if (hwBands.isNotEmpty()) "Available" else "Unavailable"}", style = MaterialTheme.typography.bodyMedium)
-                Text("Master Bypass: ${if (masterBypassed) "ON" else "OFF"}", style = MaterialTheme.typography.bodyMedium)
-                Text("EQ has control: ${if (hasControl) "Yes" else "No"}", style = MaterialTheme.typography.bodyMedium)
-                Text("Band count: ${hwBands.size}", style = MaterialTheme.typography.bodyMedium)
-                if (hwBands.isNotEmpty()) {
-                    Text("Band gain range: ${hwBands[0].minGain / 100} to ${hwBands[0].maxGain / 100} dB", style = MaterialTheme.typography.bodyMedium)
+                when (val state = engineState) {
+                    is EngineState.Attached -> {
+                        val hasCtrl = diagnostics.capabilities["EQ"]?.name?.contains("SUPPORTED") == true || diagnostics.capabilities["BassBoost"]?.name?.contains("SUPPORTED") == true
+                        if (hasCtrl) {
+                            Text("PROCESSING ACTIVE", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+                            Text("Mode: ${state.mode}", style = MaterialTheme.typography.bodyMedium)
+                            Text("Package: ${state.packageName}", style = MaterialTheme.typography.bodyMedium)
+                            Text("Session: ${state.sessionId}", style = MaterialTheme.typography.bodyMedium)
+                            Text("EQ: ${if (eqEnabled) "On" else "Off"}", style = MaterialTheme.typography.bodyMedium)
+                            Text("Bass Boost: ${if (bassEnabled) "On" else "Off"}", style = MaterialTheme.typography.bodyMedium)
+                            Text("Loudness: ${if (loudnessEnabled) "On" else "Off"}", style = MaterialTheme.typography.bodyMedium)
+                        } else {
+                            Text("NO EFFECT CONTROL", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
+                            Text("An audio session was detected, but WaveForge does not currently control the Android audio effect instance.", style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                    is EngineState.WaitingForSession -> {
+                        Text("WAITING FOR AUDIO SESSION", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.secondary)
+                        Text("Start playback in a compatible music app.\nWaveForge has settings ready but is not currently attached to an audio session.", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    is EngineState.Error -> {
+                        Text("ERROR", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
+                        Text(state.message, style = MaterialTheme.typography.bodyMedium)
+                    }
+                    is EngineState.Disabled -> {
+                        Text("DISABLED", style = MaterialTheme.typography.bodyLarge)
+                    }
                 }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            WaveForgeCard {
+                SectionHeader("DSP ENGINE STATUS")
+                Spacer(modifier = Modifier.height(8.dp))
                 
-                if (error != null) {
+                Text("Backend: ${diagnostics.processingMode}", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+                Text("Audio Route: ${diagnostics.activeRoute}", style = MaterialTheme.typography.bodyMedium)
+                Text("Sample Rate: ${diagnostics.sampleRate}", style = MaterialTheme.typography.bodyMedium)
+                Text("Channels: Stereo", style = MaterialTheme.typography.bodyMedium)
+                Text("DSP Latency: ${diagnostics.latencyMs} ms", style = MaterialTheme.typography.bodyMedium)
+                
+                if (diagnostics.capabilities["Haas"]?.name?.contains("SYSTEM_WIDE") != true) {
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Last engine error: $error", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                    Text("NOTE: Running in Compatibility Mode. Advanced Custom DSP (Haas, Crossfeed) requires the full System-Wide backend.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
                 }
             }
         }

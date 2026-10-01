@@ -9,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.waveforge.audio.engine.AudioEngine
 import com.waveforge.audio.data.WaveForgePreferencesRepository
 import com.waveforge.audio.ui.WaveForgeApp
 import com.waveforge.audio.ui.WaveForgeViewModel
@@ -20,7 +21,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
-        val engine = WaveForgeApplication.engine
+        val engine = (applicationContext as WaveForgeApplication).engine
         val repository = WaveForgePreferencesRepository(applicationContext)
         val factory = WaveForgeViewModelFactory(engine, repository)
         
