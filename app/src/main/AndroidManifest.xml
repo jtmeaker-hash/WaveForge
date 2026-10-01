@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
+        android:name=".WaveForgeApplication"
         android:allowBackup="true"
         
         android:label="WaveForge"
@@ -32,6 +33,12 @@
                 <action android:name="androidx.media3.session.MediaSessionService" />
             </intent-filter>
         </service>
+
+    
+        <service
+            android:name=".engine.WaveForgeAudioService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
 
     </application>
 

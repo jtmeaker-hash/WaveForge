@@ -9,6 +9,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.waveforge.audio.engine.EngineState
 import com.waveforge.audio.ui.WaveForgeViewModel
 import com.waveforge.audio.ui.components.WaveForgeCard
 import com.waveforge.audio.ui.components.SectionHeader
@@ -18,7 +19,9 @@ import com.waveforge.audio.ui.components.SectionHeader
 fun DashboardScreen(viewModel: WaveForgeViewModel) {
     val engineState by viewModel.engineState.collectAsState()
     val eqEnabled by viewModel.eqEnabled.collectAsState()
-    val error by viewModel.lastError.collectAsState()
+    val bassEnabled by viewModel.bassEnabled.collectAsState()
+    val loudnessEnabled by viewModel.loudnessEnabled.collectAsState()
+    val eqHasControl by viewModel.eqHasControl.collectAsState()
 
     Scaffold(
         topBar = {
@@ -29,33 +32,44 @@ fun DashboardScreen(viewModel: WaveForgeViewModel) {
                         Text("AUDIO PROCESSING", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState())
+            modifier = Modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 16.dp).verticalScroll(rememberScrollState())
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
             WaveForgeCard {
-                SectionHeader("ENGINE STATUS")
-                Text(engineState, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
-                if (error != null) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(error!!, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                SectionHeader("PROCESSING STATUS")
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                when (val state = engineState) {
+                    is EngineState.Attached -> {
+                        if (eqHasControl) {
+                            Text("PROCESSING ACTIVE", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+                            Text("Package: ${state.packageName}", style = MaterialTheme.typography.bodyMedium)
+                            Text("Session: ${state.sessionId}", style = MaterialTheme.typography.bodyMedium)
+                            Text("EQ: ${if (eqEnabled) "On" else "Off"}", style = MaterialTheme.typography.bodyMedium)
+                            Text("Bass Boost: ${if (bassEnabled) "On" else "Off"}", style = MaterialTheme.typography.bodyMedium)
+                            Text("Loudness: ${if (loudnessEnabled) "On" else "Off"}", style = MaterialTheme.typography.bodyMedium)
+                        } else {
+                            Text("NO EFFECT CONTROL", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
+                            Text("An audio session was detected, but WaveForge does not currently control the Android audio effect instance.", style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                    is EngineState.WaitingForSession -> {
+                        Text("WAITING FOR AUDIO SESSION", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.secondary)
+                        Text("Start playback in a compatible music app.\nWaveForge has settings ready but is not currently attached to an audio session.", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    is EngineState.Error -> {
+                        Text("ERROR", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
+                        Text(state.message, style = MaterialTheme.typography.bodyMedium)
+                    }
+                    is EngineState.Disabled -> {
+                        Text("DISABLED", style = MaterialTheme.typography.bodyLarge)
+                    }
                 }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            WaveForgeCard {
-                SectionHeader("ACTIVE PROCESSING")
-                Text("EQ: ${if (eqEnabled) "Enabled" else "Disabled"}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
