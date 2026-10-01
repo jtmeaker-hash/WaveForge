@@ -6,6 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.waveforge.audio.engine.AudioEngine
 import com.waveforge.audio.engine.EngineState
 import com.waveforge.audio.engine.DiagnosticsInfo
+
+import com.waveforge.audio.engine.HaasConfig
+import com.waveforge.audio.engine.CrossfeedConfig
+import com.waveforge.audio.engine.DspState
+
 import com.waveforge.audio.data.WaveForgePreferencesRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -27,6 +32,9 @@ class WaveForgeViewModel(
     val loudnessGain = engine.loudnessGain.stateIn(viewModelScope, SharingStarted.Lazily, 0)
     val lastError = engine.lastError.stateIn(viewModelScope, SharingStarted.Lazily, null)
 
+    
+    val dspState = engine.dspState.stateIn(viewModelScope, SharingStarted.Lazily, DspState())
+
     val diagnosticsInfo = engine.diagnosticsInfo.stateIn(viewModelScope, SharingStarted.Lazily, DiagnosticsInfo())
     val lastSessionEvent = engine.lastSessionEvent.stateIn(viewModelScope, SharingStarted.Lazily, "None")
 
@@ -37,6 +45,10 @@ class WaveForgeViewModel(
     fun setLoudnessEnabled(enabled: Boolean) = engine.setLoudnessEnabled(enabled)
     fun setLoudnessGain(gain: Int) = engine.setLoudnessGain(gain)
     
+    
+    fun updateHaasConfig(config: HaasConfig) = engine.updateHaasConfig(config)
+    fun updateCrossfeedConfig(config: CrossfeedConfig) = engine.updateCrossfeedConfig(config)
+
     fun resetEq() = engine.resetEq()
     fun applyExtremeTest() = engine.applyExtremeTest()
 }

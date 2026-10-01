@@ -73,6 +73,23 @@ fun DashboardScreen(viewModel: WaveForgeViewModel) {
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            WaveForgeCard {
+                SectionHeader("DSP ENGINE STATUS")
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text("Backend: ${diagnostics.processingMode}", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+                Text("Audio Route: ${diagnostics.activeRoute}", style = MaterialTheme.typography.bodyMedium)
+                Text("Sample Rate: ${diagnostics.sampleRate}", style = MaterialTheme.typography.bodyMedium)
+                Text("Channels: Stereo", style = MaterialTheme.typography.bodyMedium)
+                Text("DSP Latency: ${diagnostics.latencyMs} ms", style = MaterialTheme.typography.bodyMedium)
+                
+                if (diagnostics.capabilities["Haas"]?.name?.contains("SYSTEM_WIDE") != true) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("NOTE: Running in Compatibility Mode. Advanced Custom DSP (Haas, Crossfeed) requires the full System-Wide backend.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+                }
+            }
         }
     }
 }
