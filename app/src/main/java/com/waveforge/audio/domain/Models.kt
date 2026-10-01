@@ -25,3 +25,11 @@ data class AudioPreset(
     val name: String,
     val bands: Map<Int, Float>
 )
+
+data class EqBand(
+    val index: Short,
+    val centerFreq: Int,
+    val minGain: Short,
+    val maxGain: Short,
+    var gain: Short
+)

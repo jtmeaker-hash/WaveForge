@@ -8,20 +8,31 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.waveforge.audio.engine.AudioEngine
+import com.waveforge.audio.data.WaveForgePreferencesRepository
 import com.waveforge.audio.ui.WaveForgeApp
+import com.waveforge.audio.ui.WaveForgeViewModel
+import com.waveforge.audio.ui.WaveForgeViewModelFactory
 import com.waveforge.audio.ui.theme.WaveForgeTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        val engine = AudioEngine(applicationContext)
+        val repository = WaveForgePreferencesRepository(applicationContext)
+        val factory = WaveForgeViewModelFactory(engine, repository)
+        
         setContent {
             WaveForgeTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    WaveForgeApp()
+                    val viewModel: WaveForgeViewModel = viewModel(factory = factory)
+                    WaveForgeApp(viewModel)
                 }
             }
         }

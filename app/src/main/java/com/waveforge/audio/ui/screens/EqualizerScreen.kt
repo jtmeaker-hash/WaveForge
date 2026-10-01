@@ -1,38 +1,78 @@
 package com.waveforge.audio.ui.screens
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.dp
+import com.waveforge.audio.ui.WaveForgeViewModel
 import com.waveforge.audio.ui.components.WaveForgeCard
 import com.waveforge.audio.ui.components.SectionHeader
+import kotlin.math.roundToInt
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EqualizerScreen() {
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        SectionHeader("PARAMETRIC EQ")
-        Text("Precision frequency control", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        val primaryColor = MaterialTheme.colorScheme.primary
-        val gridColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
-        
-        WaveForgeCard(modifier = Modifier.height(200.dp)) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val w = size.width
-                val h = size.height
-                // Draw mock grid
-                for (i in 1..4) {
-                    drawLine(gridColor, Offset(0f, h * i / 5), Offset(w, h * i / 5))
+fun EqualizerScreen(viewModel: WaveForgeViewModel) {
+    val eqEnabled by viewModel.eqEnabled.collectAsState()
+    val bands by viewModel.eqBands.collectAsState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("EQUALIZER") },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { innerPadding ->
+        Column(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 16.dp)) {
+            WaveForgeCard {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Enable Equalizer", style = MaterialTheme.typography.bodyLarge)
+                    Switch(checked = eqEnabled, onCheckedChange = { viewModel.setEqEnabled(it) })
                 }
-                for (i in 1..9) {
-                    drawLine(gridColor, Offset(w * i / 10, 0f), Offset(w * i / 10, h))
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(onClick = { viewModel.resetEq() }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Reset EQ")
                 }
-                // Draw flat response
-                drawLine(primaryColor, Offset(0f, h / 2), Offset(w, h / 2), strokeWidth = 4f)
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            if (bands.isEmpty()) {
+                WaveForgeCard {
+                    Text("EQ not supported on this device or session.", color = MaterialTheme.colorScheme.error)
+                }
+            } else {
+                LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                    items(bands) { band ->
+                        WaveForgeCard(modifier = Modifier.padding(bottom = 8.dp)) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("${band.centerFreq / 1000} Hz", style = MaterialTheme.typography.bodyMedium)
+                                    Text("${band.gain / 100} dB", style = MaterialTheme.typography.bodyMedium)
+                                }
+                                Slider(
+                                    value = band.gain.toFloat(),
+                                    onValueChange = { viewModel.setBandLevel(band.index, it.roundToInt().toShort()) },
+                                    valueRange = band.minGain.toFloat()..band.maxGain.toFloat(),
+                                    enabled = eqEnabled
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
