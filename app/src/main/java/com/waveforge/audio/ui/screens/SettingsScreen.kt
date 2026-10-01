@@ -21,45 +21,29 @@ import com.waveforge.audio.ui.components.WaveForgeCard
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(viewModel: WaveForgeViewModel, onRunSetupAgain: () -> Unit) {
+    val navController = androidx.navigation.compose.rememberNavController()
     val context = LocalContext.current
-    val eqCreated by viewModel.eqCreated.collectAsState()
-    val eqHasControl by viewModel.eqHasControl.collectAsState()
-    val eqEnabled by viewModel.eqEnabled.collectAsState()
-    val eqBands by viewModel.eqBands.collectAsState()
-    val bassCreated by viewModel.bassCreated.collectAsState()
-    val bassHasControl by viewModel.bassHasControl.collectAsState()
-    val bassStrengthSupported by viewModel.bassStrengthSupported.collectAsState()
-    val loudnessCreated by viewModel.loudnessCreated.collectAsState()
-    val loudnessHasControl by viewModel.loudnessHasControl.collectAsState()
+    val diagnostics by viewModel.diagnosticsInfo.collectAsState()
     val lastSessionEvent by viewModel.lastSessionEvent.collectAsState()
-    val engineState by viewModel.engineState.collectAsState()
-    val lastError by viewModel.lastError.collectAsState()
-
-    val activePackage = if (engineState is EngineState.Attached) (engineState as EngineState.Attached).packageName else "None"
-    val activeSessionId = if (engineState is EngineState.Attached) (engineState as EngineState.Attached).sessionId else -1
 
     val diagnosticText = """
-        Engine enabled: true
-        Service running: true
-        Active package: $activePackage
-        Active audio session ID: $activeSessionId
-        Last session event: $lastSessionEvent
-        Equalizer created: $eqCreated
-        Equalizer has control: $eqHasControl
-        Equalizer enabled: $eqEnabled
-        EQ bands: ${eqBands.size}
-        BassBoost created: $bassCreated
-        BassBoost has control: $bassHasControl
-        BassBoost strength supported: $bassStrengthSupported
-        LoudnessEnhancer created: $loudnessCreated
-        Loudness has control: $loudnessHasControl
-        Last engine error: ${lastError ?: "None"}
+        Processing Mode: ${diagnostics.processingMode}
+        Active Package: ${diagnostics.activePackage ?: "None"}
+        Active Session: ${diagnostics.activeSessionId ?: "None"}
+        Last Event: $lastSessionEvent
+        Native EQ Bands: ${diagnostics.nativeEqBandCount}
+        
+        Capabilities:
+        ${diagnostics.capabilities.entries.joinToString("\n        ") { "${it.key}: ${it.value}" }}
+        
+        Errors:
+        ${diagnostics.errors.joinToString("\n        ")}
     """.trimIndent()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("SETTINGS") },
+                title = { Text("SETTINGS & DIAGNOSTICS") },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
@@ -78,6 +62,12 @@ fun SettingsScreen(viewModel: WaveForgeViewModel, onRunSetupAgain: () -> Unit) {
                 }) {
                     Text("Copy diagnostics")
                 }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Button(onClick = onRunSetupAgain, modifier = Modifier.fillMaxWidth()) {
+                Text("Run Setup Again")
             }
         }
     }

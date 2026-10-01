@@ -21,7 +21,7 @@ fun DashboardScreen(viewModel: WaveForgeViewModel) {
     val eqEnabled by viewModel.eqEnabled.collectAsState()
     val bassEnabled by viewModel.bassEnabled.collectAsState()
     val loudnessEnabled by viewModel.loudnessEnabled.collectAsState()
-    val eqHasControl by viewModel.eqHasControl.collectAsState()
+    val diagnostics by viewModel.diagnosticsInfo.collectAsState()
 
     Scaffold(
         topBar = {
@@ -46,8 +46,10 @@ fun DashboardScreen(viewModel: WaveForgeViewModel) {
                 
                 when (val state = engineState) {
                     is EngineState.Attached -> {
-                        if (eqHasControl) {
+                        val hasCtrl = diagnostics.capabilities["EQ"]?.name?.contains("SUPPORTED") == true || diagnostics.capabilities["BassBoost"]?.name?.contains("SUPPORTED") == true
+                        if (hasCtrl) {
                             Text("PROCESSING ACTIVE", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+                            Text("Mode: ${state.mode}", style = MaterialTheme.typography.bodyMedium)
                             Text("Package: ${state.packageName}", style = MaterialTheme.typography.bodyMedium)
                             Text("Session: ${state.sessionId}", style = MaterialTheme.typography.bodyMedium)
                             Text("EQ: ${if (eqEnabled) "On" else "Off"}", style = MaterialTheme.typography.bodyMedium)

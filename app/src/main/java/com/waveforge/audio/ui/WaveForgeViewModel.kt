@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.waveforge.audio.engine.AudioEngine
 import com.waveforge.audio.engine.EngineState
+import com.waveforge.audio.engine.DiagnosticsInfo
 import com.waveforge.audio.data.WaveForgePreferencesRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -26,14 +27,7 @@ class WaveForgeViewModel(
     val loudnessGain = engine.loudnessGain.stateIn(viewModelScope, SharingStarted.Lazily, 0)
     val lastError = engine.lastError.stateIn(viewModelScope, SharingStarted.Lazily, null)
 
-    // Diagnostics
-    val eqCreated = engine.eqCreated.stateIn(viewModelScope, SharingStarted.Lazily, false)
-    val eqHasControl = engine.eqHasControl.stateIn(viewModelScope, SharingStarted.Lazily, false)
-    val bassCreated = engine.bassCreated.stateIn(viewModelScope, SharingStarted.Lazily, false)
-    val bassHasControl = engine.bassHasControl.stateIn(viewModelScope, SharingStarted.Lazily, false)
-    val bassStrengthSupported = engine.bassStrengthSupported.stateIn(viewModelScope, SharingStarted.Lazily, false)
-    val loudnessCreated = engine.loudnessCreated.stateIn(viewModelScope, SharingStarted.Lazily, false)
-    val loudnessHasControl = engine.loudnessHasControl.stateIn(viewModelScope, SharingStarted.Lazily, false)
+    val diagnosticsInfo = engine.diagnosticsInfo.stateIn(viewModelScope, SharingStarted.Lazily, DiagnosticsInfo())
     val lastSessionEvent = engine.lastSessionEvent.stateIn(viewModelScope, SharingStarted.Lazily, "None")
 
     fun setEqEnabled(enabled: Boolean) = engine.setEqEnabled(enabled)
