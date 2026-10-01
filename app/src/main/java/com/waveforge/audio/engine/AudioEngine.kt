@@ -59,53 +59,63 @@ class AudioEngine(private val context: Context) {
         }
         _eqBands.value = defaultBands
         
-        // Start System-Wide DSP Engine by default to fulfill Core Requirement
-        startSystemWideDsp()
+        Log.d(TAG, "AudioEngine initialized. Trying Session-0 Fallback...")
+        // Start with a session-0 global fallback attempt.
+        attachToSession(0, "Global Mix (Session 0)")
     }
 
-    private fun startSystemWideDsp() {
-        Log.d(TAG, "Starting System-Wide DSP Backend")
-        release()
-        val sysBackend = SystemRootAudioBackend()
-        backend = sysBackend
-        _engineState.value = EngineState.Attached(null, "System-Wide Mixer", "System DSP")
-        updateDiagnostics()
+    private fun checkNativeSystemDsp(): Boolean {
+        // Here we would probe for the Magisk/C++ daemon. 
+        // Currently we know it doesn't exist.
+        return false
     }
-    
+
     fun attachToSession(sessionId: Int, packageName: String?) {
-        // If we are using the System-Wide backend, we don't need to hook individual sessions
-        if (backend is SystemRootAudioBackend) {
-            Log.d(TAG, "Ignoring session $sessionId because System-Wide DSP is active")
-            lastSessionEvent.value = "IGNORED session=$sessionId (System DSP Active)"
-            return
+        Log.d(TAG, "OPEN session request: session=$sessionId package=$packageName")
+        lastSessionEvent.value = "OPEN session=$sessionId package=$packageName"
+        
+        if (checkNativeSystemDsp()) {
+            Log.d(TAG, "Using System-Wide DSP. Ignoring Android AudioEffect session $sessionId")
+            val sysBackend = SystemRootAudioBackend()
+            if (sysBackend.isAttached) {
+                backend = sysBackend
+                _engineState.value = EngineState.Attached(null, "System-Wide Mixer", "System DSP")
+                applyCurrentStateToBackend(backend)
+                updateDiagnostics()
+                return
+            }
         }
 
-        lastSessionEvent.value = "OPEN session=$sessionId package=$packageName"
         try {
-            Log.d(TAG, "attaching ExternalSessionAudioBackend to session $sessionId")
+            Log.d(TAG, "Attaching ExternalSessionAudioBackend to session $sessionId")
+            // Don't release if we are attaching to the exact same session
+            if (_activeSessionId.value == sessionId && backend?.isAttached == true) {
+                Log.d(TAG, "Already attached to session $sessionId. Skipping re-creation.")
+                return
+            }
+            
             release()
             
             val newBackend = ExternalSessionAudioBackend(sessionId)
             if (newBackend.isAttached) {
+                Log.d(TAG, "Backend successfully attached to session $sessionId")
                 backend = newBackend
-                
-                // Reapply current states
-                newBackend.setEqEnabled(_eqEnabled.value)
-                newBackend.setEqBands(_eqBands.value)
-                newBackend.setBassEnabled(_bassEnabled.value)
-                newBackend.setBassStrength(_bassStrength.value)
-                newBackend.setLoudnessEnabled(_loudnessEnabled.value)
-                newBackend.setLoudnessGain(_loudnessGain.value)
-                
                 _activeSessionId.value = sessionId
                 _activePackageName.value = packageName
-                _engineState.value = EngineState.Attached(sessionId, packageName, "Compatibility Mode")
+                _engineState.value = EngineState.Attached(sessionId, packageName, if (sessionId == 0) "Global Fallback" else "Compatibility Mode")
                 
+                applyCurrentStateToBackend(newBackend)
                 updateDiagnostics()
-                Log.d(TAG, "session $sessionId ACTIVE")
             } else {
-                _lastError.value = "Failed to attach backend"
+                Log.w(TAG, "Backend rejected attachment to session $sessionId")
+                _lastError.value = newBackend.getLastError() ?: "Failed to attach backend"
                 release()
+                
+                // If it was a real session that failed, fall back to global mix
+                if (sessionId != 0) {
+                    Log.d(TAG, "Attempting session-0 fallback after session $sessionId failed")
+                    attachToSession(0, "Global Mix Fallback")
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Engine initialization failed for session $sessionId", e)
@@ -115,9 +125,37 @@ class AudioEngine(private val context: Context) {
         }
     }
 
+    private fun applyCurrentStateToBackend(b: AudioProcessingBackend?) {
+        if (b == null) return
+        Log.d(TAG, "applyCurrentStateToBackend: Pushing all state to ${b.backendName}")
+        
+        val bypass = !_dspState.value.masterEnabled
+        Log.d(TAG, "Master Enabled: ${!bypass}")
+        
+        // Push bypass/enabled states based on masterEnabled
+        b.setEqEnabled(!bypass && _eqEnabled.value)
+        b.setEqBands(_eqBands.value)
+        
+        b.setBassEnabled(!bypass && _bassEnabled.value)
+        b.setBassStrength(_bassStrength.value)
+        
+        b.setLoudnessEnabled(!bypass && _loudnessEnabled.value)
+        b.setLoudnessGain(_loudnessGain.value)
+        
+        val haas = _dspState.value.haas
+        b.setHaasSurround(!bypass && haas.enabled, haas.delayMs, haas.amount, 0, 0, false, haas.width)
+        
+        val cf = _dspState.value.crossfeed
+        b.setCrossfeed("Custom", cf.directLevel, cf.crossfeedLevel, 0, cf.cutoffHz)
+        
+        if (b is ExternalSessionAudioBackend) {
+            b.statePushSuccessful = true
+        }
+    }
+
     private fun updateDiagnostics() {
         val b = backend
-        if (b != null) {
+        if (b != null && b.isAttached) {
             val caps = mutableMapOf<String, DspCapability>()
             listOf("EQ", "BassBoost", "Loudness", "Haas", "Crossfeed", "PBE", "AFR", "Compressor", "Limiter", "Preamp", "ChannelConfig").forEach {
                 caps[it] = b.getCapability(it)
@@ -127,24 +165,39 @@ class AudioEngine(private val context: Context) {
                 activeSessionId = _activeSessionId.value,
                 activePackage = _activePackageName.value,
                 nativeEqBandCount = b.getNativeEqBands(),
-                activeRoute = "System Mixer / Default Route", // Updated by a route listener in real implementation
-                sampleRate = "48 kHz",
-                latencyMs = 12,
+                activeRoute = "Unknown",
+                sampleRate = "Unknown",
+                latencyMs = 0,
                 capabilities = caps,
-                errors = listOfNotNull(b.getLastError())
+                errors = listOfNotNull(b.getLastError()),
+                isRealBackend = b !is SystemRootAudioBackend,
+                eqHasControl = (b as? ExternalSessionAudioBackend)?.hasEqControl == true,
+                bassHasControl = (b as? ExternalSessionAudioBackend)?.hasBassControl == true,
+                loudnessHasControl = (b as? ExternalSessionAudioBackend)?.hasLoudnessControl == true,
+                statePushedSuccessfully = (b as? ExternalSessionAudioBackend)?.statePushSuccessful == true
             )
         } else {
-            diagnosticsInfo.value = DiagnosticsInfo()
+            diagnosticsInfo.value = DiagnosticsInfo(
+                processingMode = "None",
+                errors = listOfNotNull(_lastError.value)
+            )
         }
     }
 
     fun detachSession(sessionId: Int? = null) {
-        if (backend is SystemRootAudioBackend) return
+        // Ignore close requests for other sessions if we are happily attached to a different one
+        if (sessionId != null && sessionId != _activeSessionId.value) {
+            Log.d(TAG, "Ignoring detach request for session $sessionId because we are on ${_activeSessionId.value}")
+            return
+        }
         
-        if (sessionId == null || sessionId == _activeSessionId.value) {
-            lastSessionEvent.value = "CLOSE session=${sessionId ?: "all"}"
-            Log.d(TAG, "Detaching session ${sessionId ?: "all"}")
-            release()
+        lastSessionEvent.value = "CLOSE session=${sessionId ?: "all"}"
+        Log.d(TAG, "Detaching session ${sessionId ?: "all"}")
+        release()
+        
+        // Re-attempt global mix fallback
+        if (sessionId != 0) {
+            attachToSession(0, "Global Mix Fallback")
         }
     }
 
@@ -163,9 +216,17 @@ class AudioEngine(private val context: Context) {
     }
 
     // -- State Updaters --
+    
+    fun setMasterEnabled(enabled: Boolean) {
+        Log.d(TAG, "setMasterEnabled: $enabled")
+        _dspState.update { it.copy(masterEnabled = enabled) }
+        applyCurrentStateToBackend(backend)
+    }
+
     fun updateHaasConfig(config: HaasConfig) {
         _dspState.update { it.copy(haas = config) }
-        backend?.setHaasSurround(config.enabled, config.delayMs, config.amount, 0, 0, false, config.width)
+        val bypass = !_dspState.value.masterEnabled
+        backend?.setHaasSurround(!bypass && config.enabled, config.delayMs, config.amount, 0, 0, false, config.width)
     }
 
     fun updateCrossfeedConfig(config: CrossfeedConfig) {
@@ -175,7 +236,8 @@ class AudioEngine(private val context: Context) {
     
     fun setEqEnabled(enabled: Boolean) {
         _eqEnabled.value = enabled
-        backend?.setEqEnabled(enabled)
+        val bypass = !_dspState.value.masterEnabled
+        backend?.setEqEnabled(!bypass && enabled)
     }
     
     fun setBandLevel(bandIndex: Short, level: Short) {
@@ -186,7 +248,8 @@ class AudioEngine(private val context: Context) {
     
     fun setBassEnabled(enabled: Boolean) {
         _bassEnabled.value = enabled
-        backend?.setBassEnabled(enabled)
+        val bypass = !_dspState.value.masterEnabled
+        backend?.setBassEnabled(!bypass && enabled)
     }
     
     fun setBassStrength(strength: Int) {
@@ -196,7 +259,8 @@ class AudioEngine(private val context: Context) {
 
     fun setLoudnessEnabled(enabled: Boolean) {
         _loudnessEnabled.value = enabled
-        backend?.setLoudnessEnabled(enabled)
+        val bypass = !_dspState.value.masterEnabled
+        backend?.setLoudnessEnabled(!bypass && enabled)
     }
 
     fun setLoudnessGain(gain: Int) {
@@ -211,14 +275,20 @@ class AudioEngine(private val context: Context) {
     }
     
     fun applyExtremeTest() {
+        Log.d(TAG, "applyExtremeTest: Setting dramatic EQ for testing")
         if (_eqBands.value.isEmpty()) return
+        
+        // Ensure EQ and Master are enabled for the extreme test to work
+        setMasterEnabled(true)
+        setEqEnabled(true)
+        
         val lowestBand = _eqBands.value.minByOrNull { it.centerFreq }
         val highestBand = _eqBands.value.maxByOrNull { it.centerFreq }
         val updated = _eqBands.value.map {
             when (it.index) {
                 lowestBand?.index -> it.copy(gain = -1500)
                 highestBand?.index -> it.copy(gain = 1500)
-                else -> it
+                else -> it.copy(gain = 0)
             }
         }
         _eqBands.value = updated

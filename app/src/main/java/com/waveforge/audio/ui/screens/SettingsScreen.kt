@@ -70,5 +70,26 @@ fun SettingsScreen(viewModel: WaveForgeViewModel, onRunSetupAgain: () -> Unit) {
                 Text("Run Setup Again")
             }
         }
+
+            WaveForgeCard {
+                SectionHeader("EXTENDED DIAGNOSTICS")
+                Spacer(modifier = Modifier.height(8.dp))
+                val lastEvent by viewModel.lastSessionEvent.collectAsState()
+                
+                Text("Last Session Event: $lastEvent", style = MaterialTheme.typography.bodySmall)
+                Text("Real Backend Active: ${diagnostics.isRealBackend}", style = MaterialTheme.typography.bodySmall)
+                Text("EQ hasControl: ${diagnostics.eqHasControl}", style = MaterialTheme.typography.bodySmall)
+                Text("Bass hasControl: ${diagnostics.bassHasControl}", style = MaterialTheme.typography.bodySmall)
+                Text("Loudness hasControl: ${diagnostics.loudnessHasControl}", style = MaterialTheme.typography.bodySmall)
+                Text("Settings Pushed: ${diagnostics.statePushedSuccessfully}", style = MaterialTheme.typography.bodySmall)
+                
+                if (diagnostics.errors.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("LATEST ERROR:", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+                    diagnostics.errors.forEach { err ->
+                        Text(err, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            }
     }
 }

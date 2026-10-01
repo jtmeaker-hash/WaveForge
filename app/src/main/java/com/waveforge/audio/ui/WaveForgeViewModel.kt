@@ -46,7 +46,10 @@ class WaveForgeViewModel(
     fun setLoudnessGain(gain: Int) = engine.setLoudnessGain(gain)
     
     
+    
+    fun setMasterEnabled(enabled: Boolean) = engine.setMasterEnabled(enabled)
     fun updateHaasConfig(config: HaasConfig) = engine.updateHaasConfig(config)
+
     fun updateCrossfeedConfig(config: CrossfeedConfig) = engine.updateCrossfeedConfig(config)
 
     fun resetEq() = engine.resetEq()

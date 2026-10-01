@@ -25,10 +25,15 @@ data class DiagnosticsInfo(
     val activePackage: String? = null,
     val nativeEqBandCount: Int = 0,
     val activeRoute: String = "Unknown",
-    val sampleRate: String = "48 kHz",
+    val sampleRate: String = "Unknown",
     val latencyMs: Int = 0,
     val capabilities: Map<String, DspCapability> = emptyMap(),
-    val errors: List<String> = emptyList()
+    val errors: List<String> = emptyList(),
+    val isRealBackend: Boolean = false,
+    val eqHasControl: Boolean = false,
+    val bassHasControl: Boolean = false,
+    val loudnessHasControl: Boolean = false,
+    val statePushedSuccessfully: Boolean = false
 )
 
 sealed class EngineState {

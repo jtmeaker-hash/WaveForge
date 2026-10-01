@@ -21,6 +21,12 @@ class ExternalSessionAudioBackend(val sessionId: Int) : AudioProcessingBackend {
     
     private val capabilities = mutableMapOf<String, DspCapability>()
     private var lastError: String? = null
+
+    val hasEqControl: Boolean get() = equalizer?.hasControl() == true
+    val hasBassControl: Boolean get() = bassBoost?.hasControl() == true
+    val hasLoudnessControl: Boolean get() = loudnessEnhancer?.hasControl() == true
+    var statePushSuccessful: Boolean = false
+
     
     private var nativeBands = 0
     private var minEq = -1500
@@ -73,11 +79,55 @@ class ExternalSessionAudioBackend(val sessionId: Int) : AudioProcessingBackend {
 
     override fun getCapability(feature: String) = capabilities[feature] ?: DspCapability.UNAVAILABLE_NO_SESSION
 
+    override fun setBassEnabled(enabled: Boolean) {
+        try {
+            bassBoost?.enabled = enabled
+            Log.d(TAG, "setBassEnabled: $enabled (hasControl=${hasBassControl})")
+        } catch (e: Exception) {
+            lastError = "Bass error: ${e.message}"
+            Log.e(TAG, "Error setting Bass enabled", e)
+        }
+    }
+
+    override fun setBassStrength(strength: Int) {
+        try {
+            if (bassBoost?.strengthSupported == true) {
+                bassBoost?.setStrength(strength.toShort())
+                Log.d(TAG, "setBassStrength: $strength")
+            }
+        } catch (e: Exception) {
+            lastError = "Bass strength error: ${e.message}"
+            Log.e(TAG, "Error setting Bass strength", e)
+        }
+    }
+
+    override fun setLoudnessEnabled(enabled: Boolean) {
+        try {
+            loudnessEnhancer?.enabled = enabled
+            Log.d(TAG, "setLoudnessEnabled: $enabled (hasControl=${hasLoudnessControl})")
+        } catch (e: Exception) {
+            lastError = "Loudness error: ${e.message}"
+            Log.e(TAG, "Error setting Loudness enabled", e)
+        }
+    }
+
+    override fun setLoudnessGain(gain: Int) {
+        try {
+            loudnessEnhancer?.setTargetGain(gain)
+            Log.d(TAG, "setLoudnessGain: $gain")
+        } catch (e: Exception) {
+            lastError = "Loudness gain error: ${e.message}"
+            Log.e(TAG, "Error setting Loudness gain", e)
+        }
+    }
+
     override fun setEqEnabled(enabled: Boolean) {
         try {
             equalizer?.enabled = enabled
+            Log.d(TAG, "setEqEnabled: $enabled (hasControl=${hasEqControl})")
         } catch (e: Exception) {
-            lastError = e.message
+            lastError = "EQ error: ${e.message}"
+            Log.e(TAG, "Error setting EQ enabled", e)
         }
     }
 
@@ -96,27 +146,11 @@ class ExternalSessionAudioBackend(val sessionId: Int) : AudioProcessingBackend {
                     equalizer!!.setBandLevel(i.toShort(), targetGain.toShort())
                 }
             }
+            Log.d(TAG, "setEqBands: pushed to native EQ")
         } catch (e: Exception) {
-            lastError = e.message
+            lastError = "EQ band error: ${e.message}"
+            Log.e(TAG, "Error setting EQ bands", e)
         }
-    }
-
-    override fun setBassEnabled(enabled: Boolean) {
-        bassBoost?.enabled = enabled
-    }
-
-    override fun setBassStrength(strength: Int) {
-        if (bassBoost?.strengthSupported == true) {
-            bassBoost?.setStrength(strength.toShort())
-        }
-    }
-
-    override fun setLoudnessEnabled(enabled: Boolean) {
-        loudnessEnhancer?.enabled = enabled
-    }
-
-    override fun setLoudnessGain(gain: Int) {
-        loudnessEnhancer?.setTargetGain(gain)
     }
 
     override fun setHaasSurround(enabled: Boolean, delayMs: Int, balance: Int, fx1: Int, fx2: Int, sideOnly: Boolean, wetMix: Int) { }
