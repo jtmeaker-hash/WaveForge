@@ -15,13 +15,13 @@ import com.waveforge.audio.ui.components.SectionHeader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProcessingScreen(viewModel: WaveForgeViewModel) {
+fun SpatialScreen(viewModel: WaveForgeViewModel) {
     val diagnostics by viewModel.diagnosticsInfo.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("PROCESSING") },
+                title = { Text("SPATIAL AUDIO") },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
@@ -32,9 +32,9 @@ fun ProcessingScreen(viewModel: WaveForgeViewModel) {
         ) {
             
             WaveForgeCard {
-                SectionHeader("CHANNEL CONFIGURATION")
+                SectionHeader("HAAS SURROUND")
                 Spacer(modifier = Modifier.height(8.dp))
-                val cap = diagnostics.capabilities["Channel"]?.name ?: "UNAVAILABLE_NO_SESSION"
+                val cap = diagnostics.capabilities["Haas"]?.name ?: "UNAVAILABLE_NO_SESSION"
                 if (cap.contains("UNSUPPORTED")) {
                     Text("Not supported by current session/device.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
                 } else {
@@ -44,9 +44,9 @@ fun ProcessingScreen(viewModel: WaveForgeViewModel) {
             Spacer(modifier = Modifier.height(16.dp))
 
             WaveForgeCard {
-                SectionHeader("STEREO WIDTH")
+                SectionHeader("CROSSFEED")
                 Spacer(modifier = Modifier.height(8.dp))
-                val cap = diagnostics.capabilities["Stereo"]?.name ?: "UNAVAILABLE_NO_SESSION"
+                val cap = diagnostics.capabilities["Crossfeed"]?.name ?: "UNAVAILABLE_NO_SESSION"
                 if (cap.contains("UNSUPPORTED")) {
                     Text("Not supported by current session/device.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
                 } else {

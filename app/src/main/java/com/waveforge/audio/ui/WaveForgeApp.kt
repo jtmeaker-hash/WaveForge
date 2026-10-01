@@ -1,10 +1,7 @@
 package com.waveforge.audio.ui
+import androidx.compose.ui.unit.dp
 
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -41,12 +38,12 @@ fun WaveForgeApp(viewModel: WaveForgeViewModel) {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
 
-                val items = listOf("dashboard", "eq", "processing", "output", "settings")
-                val labels = listOf("Dashboard", "EQ", "Processing", "Output", "Settings")
+                val items = listOf("dashboard", "eq", "dsp", "playback", "settings")
+                val labels = listOf("Dashboard", "EQ", "DSP", "Playback", "Settings")
 
                 items.forEachIndexed { index, screen ->
                     NavigationBarItem(
-                        selected = currentRoute == screen,
+                        selected = currentRoute?.startsWith(screen) == true,
                         onClick = {
                             navController.navigate(screen) {
                                 popUpTo(navController.graph.startDestinationId) { saveState = true }
@@ -55,7 +52,7 @@ fun WaveForgeApp(viewModel: WaveForgeViewModel) {
                             }
                         },
                         label = { Text(labels[index], maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
-                        icon = { /* Material icons can be added here */ },
+                        icon = { /* Icons here */ },
                         alwaysShowLabel = true
                     )
                 }
@@ -66,12 +63,16 @@ fun WaveForgeApp(viewModel: WaveForgeViewModel) {
         NavHost(
             navController = navController,
             startDestination = "dashboard",
-            modifier = Modifier.padding(padding).systemBarsPadding() // Handled here to apply uniformly
+            modifier = Modifier.padding(padding).systemBarsPadding()
         ) {
             composable("dashboard") { DashboardScreen(viewModel) }
             composable("eq") { EqualizerScreen(viewModel) }
-            composable("processing") { ProcessingScreen(viewModel) }
-            composable("output") { OutputScreen(viewModel) }
+            composable("dsp") { DspHubScreen(navController) }
+            composable("dsp/spatial") { SpatialScreen(viewModel) }
+            composable("dsp/dynamics") { DynamicsScreen(viewModel) }
+            composable("dsp/enhancement") { EnhancementScreen(viewModel) }
+            composable("dsp/processing") { ProcessingScreen(viewModel) }
+            composable("playback") { PlaybackScreen(viewModel) }
             composable("settings") { 
                 SettingsScreen(
                     viewModel = viewModel,
@@ -79,6 +80,35 @@ fun WaveForgeApp(viewModel: WaveForgeViewModel) {
                         coroutineScope.launch { repository.setOnboardingComplete(false) }
                     }
                 ) 
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DspHubScreen(navController: androidx.navigation.NavController) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("DSP MODULES") },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { innerPadding ->
+        Column(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 16.dp)) {
+            Button(onClick = { navController.navigate("dsp/spatial") }, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                Text("Spatial (Haas, Crossfeed)")
+            }
+            Button(onClick = { navController.navigate("dsp/dynamics") }, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                Text("Dynamics (Compressor, Limiter)")
+            }
+            Button(onClick = { navController.navigate("dsp/enhancement") }, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                Text("Enhancement (PBE, AFR)")
+            }
+            Button(onClick = { navController.navigate("dsp/processing") }, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                Text("Processing (Channel Config, Stereo Width)")
             }
         }
     }

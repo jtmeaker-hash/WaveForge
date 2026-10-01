@@ -19,7 +19,7 @@ import kotlin.math.roundToInt
 fun EqualizerScreen(viewModel: WaveForgeViewModel) {
     val eqEnabled by viewModel.eqEnabled.collectAsState()
     val eqBands by viewModel.eqBands.collectAsState()
-    val eqHasControl by viewModel.eqHasControl.collectAsState()
+    val diagnostics by viewModel.diagnosticsInfo.collectAsState()
 
     Scaffold(
         topBar = {
@@ -40,7 +40,7 @@ fun EqualizerScreen(viewModel: WaveForgeViewModel) {
                     Text("Enable EQ", style = MaterialTheme.typography.bodyLarge)
                     Switch(checked = eqEnabled, onCheckedChange = { viewModel.setEqEnabled(it) })
                 }
-                if (!eqHasControl) {
+                if (diagnostics.capabilities["EQ"]?.name?.contains("SUPPORTED") != true) {
                     Text("Engine lacks control. Changes will apply when session is active.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
