@@ -57,6 +57,13 @@ class WaveForgeViewModel(
 
     fun resetEq() = engine.resetEq()
     fun applyExtremeTest() = engine.applyExtremeTest()
+    fun applyExtremeBass() = engine.applyExtremeBass()
+    fun applyExtremeVirtualizer() = engine.applyExtremeVirtualizer()
+    fun applyExtremeCompressor() = engine.applyExtremeCompressor()
+    fun applyExtremeLimiter() = engine.applyExtremeLimiter()
+    fun applyExtremePbe() = engine.applyExtremePbe()
+    fun applyExtremeAfr() = engine.applyExtremeAfr()
+    fun applyExtremePreamp() = engine.applyExtremePreamp()
 }
 
 class WaveForgeViewModelFactory(

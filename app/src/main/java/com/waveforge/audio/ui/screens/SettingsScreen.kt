@@ -72,6 +72,28 @@ fun SettingsScreen(viewModel: WaveForgeViewModel, onRunSetupAgain: () -> Unit) {
         }
 
             WaveForgeCard {
+            WaveForgeCard {
+                SectionHeader("EXTREME DSP TEST")
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Warning: These will apply extreme settings instantly.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    Button(onClick = { viewModel.applyExtremeTest() }) { Text("Max EQ") }
+                    Button(onClick = { viewModel.applyExtremeBass() }) { Text("Max Bass") }
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    Button(onClick = { viewModel.applyExtremeVirtualizer() }) { Text("Max Stereo") }
+                    Button(onClick = { viewModel.applyExtremeCompressor() }) { Text("Heavy Comp") }
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    Button(onClick = { viewModel.applyExtremeLimiter() }) { Text("Low Limit") }
+                    Button(onClick = { viewModel.applyExtremePbe() }) { Text("Strong PBE") }
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    Button(onClick = { viewModel.applyExtremeAfr() }) { Text("Strong AFR") }
+                    Button(onClick = { viewModel.applyExtremePreamp() }) { Text("High Gain") }
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
                 SectionHeader("EXTENDED DIAGNOSTICS")
                 Spacer(modifier = Modifier.height(8.dp))
                 val lastEvent by viewModel.lastSessionEvent.collectAsState()

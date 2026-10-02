@@ -21,6 +21,8 @@ import kotlin.math.roundToInt
 fun ProcessingScreen(viewModel: WaveForgeViewModel) {
     val diagnostics by viewModel.diagnosticsInfo.collectAsState()
     val dspState by viewModel.dspState.collectAsState()
+    val loudnessEnabled by viewModel.loudnessEnabled.collectAsState()
+    val loudnessGain by viewModel.loudnessGain.collectAsState()
 
     Scaffold(
         topBar = {
@@ -59,6 +61,31 @@ fun ProcessingScreen(viewModel: WaveForgeViewModel) {
             }
             Spacer(modifier = Modifier.height(16.dp))
             
+            WaveForgeCard {
+                SectionHeader("PREAMP / MASTER GAIN")
+                Spacer(modifier = Modifier.height(8.dp))
+                val cap = diagnostics.capabilities["Preamp"]?.name ?: "UNAVAILABLE_NO_SESSION"
+                if (cap.contains("UNSUPPORTED")) {
+                    Text("Not supported by current session/device.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                } else {
+                    Text("Status: $cap", style = MaterialTheme.typography.bodyMedium)
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("Enable Preamp")
+                        Switch(
+                            checked = loudnessEnabled,
+                            onCheckedChange = { viewModel.setLoudnessEnabled(it) }
+                        )
+                    }
+                    Text("Gain: ${loudnessGain} mB")
+                    Slider(
+                        value = loudnessGain.toFloat(),
+                        onValueChange = { viewModel.setLoudnessGain(it.roundToInt()) },
+                        valueRange = 0f..2000f
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+
             WaveForgeCard {
                 SectionHeader("CHANNEL CONFIGURATION")
                 Spacer(modifier = Modifier.height(8.dp))
