@@ -7,8 +7,7 @@ import com.waveforge.audio.engine.AudioEngine
 import com.waveforge.audio.engine.EngineState
 import com.waveforge.audio.engine.DiagnosticsInfo
 
-import com.waveforge.audio.engine.HaasConfig
-import com.waveforge.audio.engine.CrossfeedConfig
+import com.waveforge.audio.engine.*
 import com.waveforge.audio.engine.DspState
 
 import com.waveforge.audio.data.WaveForgePreferencesRepository
@@ -46,11 +45,25 @@ class WaveForgeViewModel(
     fun setLoudnessGain(gain: Int) = engine.setLoudnessGain(gain)
     
     
+    
+    fun setMasterEnabled(enabled: Boolean) = engine.setMasterEnabled(enabled)
     fun updateHaasConfig(config: HaasConfig) = engine.updateHaasConfig(config)
     fun updateCrossfeedConfig(config: CrossfeedConfig) = engine.updateCrossfeedConfig(config)
+    fun updateCompressorConfig(config: CompressorConfig) = engine.updateCompressorConfig(config)
+    fun updateLimiterConfig(config: LimiterConfig) = engine.updateLimiterConfig(config)
+    fun updatePbeConfig(config: PbeConfig) = engine.updatePbeConfig(config)
+    fun updateAfrConfig(config: AfrConfig) = engine.updateAfrConfig(config)
+    fun updateStereoWidthConfig(config: StereoWidthConfig) = engine.updateStereoWidthConfig(config)
 
     fun resetEq() = engine.resetEq()
     fun applyExtremeTest() = engine.applyExtremeTest()
+    fun applyExtremeBass() = engine.applyExtremeBass()
+    fun applyExtremeVirtualizer() = engine.applyExtremeVirtualizer()
+    fun applyExtremeCompressor() = engine.applyExtremeCompressor()
+    fun applyExtremeLimiter() = engine.applyExtremeLimiter()
+    fun applyExtremePbe() = engine.applyExtremePbe()
+    fun applyExtremeAfr() = engine.applyExtremeAfr()
+    fun applyExtremePreamp() = engine.applyExtremePreamp()
 }
 
 class WaveForgeViewModelFactory(

@@ -1,0 +1,37 @@
+--- app/src/main/java/com/waveforge/audio/engine/AudioEngine.kt
++++ app/src/main/java/com/waveforge/audio/engine/AudioEngine.kt
+@@ -290,14 +290,44 @@
+         _eqBands.value = updated
+         backend?.setEqBands(updated)
+     }
++
++    fun applyExtremeBass() {
++        setBassEnabled(true)
++        setBassStrength(100)
++    }
++
++    fun applyExtremeVirtualizer() {
++        updateStereoWidthConfig(StereoWidthConfig(enabled = true, strength = 100))
++    }
++
++    fun applyExtremeCompressor() {
++        updateCompressorConfig(CompressorConfig(enabled = true, threshold = -50, ratio = 20, knee = "Hard", attackMs = 1, releaseMs = 100, makeupGain = 12))
++    }
++
++    fun applyExtremeLimiter() {
++        updateLimiterConfig(LimiterConfig(enabled = true, threshold = -20, releaseMs = 10))
++    }
++
++    fun applyExtremePbe() {
++        updatePbeConfig(PbeConfig(enabled = true, strength = 100, preCut = 0f))
++    }
++
++    fun applyExtremeAfr() {
++        updateAfrConfig(AfrConfig(enabled = true, mode = "Strong", intensity = 100))
++    }
++
++    fun applyExtremePreamp() {
++        setLoudnessEnabled(true)
++        setLoudnessGain(1000)
++    }
+ }

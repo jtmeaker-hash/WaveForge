@@ -7,26 +7,27 @@ import com.waveforge.audio.engine.EqBandRequest
 class SystemRootAudioBackend : AudioProcessingBackend {
     private val TAG = "WaveForgeRootBackend"
     
-    override val backendName = "System-Wide DSP Engine"
-    override var isAttached: Boolean = true
+    override val backendName = "System-Wide DSP Engine (Native)"
+    
+    // We do NOT have a real C++ root audio module running right now.
+    // So this backend must truthfully report itself as unattached and its capabilities as unavailable.
+    override var isAttached: Boolean = false
         private set
         
     private val capabilities = mutableMapOf<String, DspCapability>()
-    private var lastError: String? = null
+    private var lastError: String? = "Native system DSP module not found"
 
     init {
-        // A real implementation would spin up the native NDK engine, 
-        // start the Magisk daemon/service, or attach to the global audio mix.
         Log.d(TAG, "Initializing Native System-Wide DSP Engine...")
-        
+        // Because the C++ daemon isn't running in this iteration, these are NOT supported.
         listOf("EQ", "BassBoost", "Loudness", "Haas", "Crossfeed", "PBE", "AFR", "Compressor", "Limiter", "Preamp", "ChannelConfig").forEach {
-            capabilities[it] = DspCapability.SUPPORTED_SYSTEM_WIDE
+            capabilities[it] = DspCapability.UNAVAILABLE_NO_SESSION
         }
     }
 
     override fun getCapability(feature: String) = capabilities[feature] ?: DspCapability.UNAVAILABLE_NO_SESSION
     
-    // In a real NDK implementation, these would pass parameters via JNI down to the C++ engine
+    // Setters are no-ops because we are not attached
     override fun setEqEnabled(enabled: Boolean) { }
     override fun setEqBands(bands: List<EqBandRequest>) { }
     override fun setBassEnabled(enabled: Boolean) { }
@@ -48,6 +49,6 @@ class SystemRootAudioBackend : AudioProcessingBackend {
         isAttached = false
     }
 
-    override fun getNativeEqBands(): Int = 10
+    override fun getNativeEqBands(): Int = 0
     override fun getLastError(): String? = lastError
 }

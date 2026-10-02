@@ -25,10 +25,15 @@ data class DiagnosticsInfo(
     val activePackage: String? = null,
     val nativeEqBandCount: Int = 0,
     val activeRoute: String = "Unknown",
-    val sampleRate: String = "48 kHz",
+    val sampleRate: String = "Unknown",
     val latencyMs: Int = 0,
     val capabilities: Map<String, DspCapability> = emptyMap(),
-    val errors: List<String> = emptyList()
+    val errors: List<String> = emptyList(),
+    val isRealBackend: Boolean = false,
+    val eqHasControl: Boolean = false,
+    val bassHasControl: Boolean = false,
+    val loudnessHasControl: Boolean = false,
+    val statePushedSuccessfully: Boolean = false
 )
 
 sealed class EngineState {
@@ -54,10 +59,48 @@ data class CrossfeedConfig(
     val crossfeedLevel: Int = -6
 )
 
+data class CompressorConfig(
+    val enabled: Boolean = false,
+    val threshold: Int = -20,
+    val ratio: Int = 4,
+    val knee: String = "Hard",
+    val attackMs: Int = 10,
+    val releaseMs: Int = 100,
+    val makeupGain: Int = 0
+)
+
+data class LimiterConfig(
+    val enabled: Boolean = false,
+    val threshold: Int = -2,
+    val releaseMs: Int = 100
+)
+
+data class PbeConfig(
+    val enabled: Boolean = false,
+    val strength: Int = 50,
+    val preCut: Float = 2.0f
+)
+
+data class AfrConfig(
+    val enabled: Boolean = false,
+    val mode: String = "Soft",
+    val intensity: Int = 50
+)
+
+data class StereoWidthConfig(
+    val enabled: Boolean = false,
+    val strength: Int = 50
+)
+
 data class DspState(
     val masterEnabled: Boolean = true,
     val preamp: Int = 0,
     val outputGain: Int = 0,
     val haas: HaasConfig = HaasConfig(),
-    val crossfeed: CrossfeedConfig = CrossfeedConfig()
+    val crossfeed: CrossfeedConfig = CrossfeedConfig(),
+    val compressor: CompressorConfig = CompressorConfig(),
+    val limiter: LimiterConfig = LimiterConfig(),
+    val pbe: PbeConfig = PbeConfig(),
+    val afr: AfrConfig = AfrConfig(),
+    val stereoWidth: StereoWidthConfig = StereoWidthConfig()
 )
